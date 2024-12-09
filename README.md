@@ -65,4 +65,34 @@ CGPROGRAM
 ENDCG
 ```
 
-The color grade shader 
+The color grade shader takes in a LUT (look up table) and a float range between 0 and 1 that determines how strong the LUT is effecting the screen. The first thing in the color grade shader is turning off culling and depth to make sure the effect is shown on the screen. Then the amount of colors in the LUT is defined. Inside of the fragment shader the size of the LUT is calculated to avoid going beyond the LUT limit, the offsets are calculated to map the image to the LUT, then the color grading value is returned. Finally a C# script is used to project the material that has the shader applied to it to project it on the screen.
+
+The color grading fragment shader can be seen below.
+
+``` ShaderLab
+fixed4 frag (v2f i) : SV_Target
+{
+    float maxColor = COLORS - 1.0; // Value of colors - 1
+    fixed4 col = saturate(tex2D(_MainTex, i.uv));
+    float halfColX = 0.5 / _LUT_TexelSize.z;
+    float halfColY = 0.5 / _LUT_TexelSize.w;
+    float threshold = maxColor / COLORS;
+
+    float xOffset = halfColX + col.r * threshold / COLORS;
+    float yOffset = halfColY + col.g * threshold;
+    float cell = floor(col.b * maxColor);
+
+    float2 lutPos = float2(cell / COLORS + xOffset, yOffset);
+    float4 gradedCol = tex2D(_LUT, lutPos);
+
+    return lerp(col, gradedCol, _Contribution);
+}
+```
+
+### Why was it done
+
+I think adding colored vertexes to the outline shader made the object look more appealing compared to just a regular black outline and makes the visual style more unique.
+
+Color tint was added to tint the base color of the objects, so it would not look as plain.
+
+Color correction was used to visually enhance the look of the final game, and making it look different and unique.
